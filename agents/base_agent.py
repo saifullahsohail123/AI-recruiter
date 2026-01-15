@@ -9,7 +9,7 @@ class BaseAgent:
         self.name = name
         self.instructions = instructions
         self.ollama_client = OpenAI(
-            base_url="http://localhost:11434/v1"  # Example base URL for Ollama
+            base_url="http://localhost:11434/v1",  # Example base URL for Ollama
             api_key="ollama"  # Ollama may not require an API key
         )
     

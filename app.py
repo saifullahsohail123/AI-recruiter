@@ -3,17 +3,17 @@ import streamlit as st
 import asyncio
 import os
 from datetime import datetime
-from pathlib import Pathlib
+from pathlib import Path
 from streamlit_option_menu import option_menu
 from agents.orchestrator import OrchestratorAgent
 from utils.logger import setup_logger
-from utils.exception import ResumeProcessingError
+# from utils.exception import ResumeProcessingError
 
 # Configure Streamlit page
 st.set_page_config(
     page_title = "AI Recruiter Agency",
     page_icon = "🤖",
-    layout = "wide"
+    layout = "wide",
     initial_sidebar_state = "expanded"
 )
 
@@ -21,3 +21,113 @@ st.set_page_config(
 logger = setup_logger()
 
 
+
+
+# # Custom CSS
+# st.markdown(
+#     """
+#     <style>
+#         .stProgress .st-bo {
+#             background-color: #00a0dc;
+#         }
+#         .success-text {
+#             color: #00c853;
+#         }
+#         .warning-text {
+#             color: #ffd700;
+#         }
+#         .error-text {
+#             color: #ff5252;
+#         }
+#         .st-emotion-cache-1v0mbdj.e115fcil1 {
+#             border: 1px solid #ddd;
+#             border-radius: 10px;
+#             padding: 20px;
+#         }
+#     </style>
+# """,
+#     unsafe_allow_html=True,
+# )
+
+
+# Custom CSS
+st.markdown(
+    """
+    <style>
+    .main {
+        background-color: #f0f2f6;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
+def save_uploaded_file(uploaded_file) -> str:
+    """Save uploaded file and return the file path."""
+    try:
+        save_dir = Path("uploads")
+        save_dir.mkdir(exist_ok=True)
+
+        # Generate unique file name
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        file_path = save_dir / f"{timestamp}_{uploaded_file.name}"
+
+
+        # Save the file
+        with open(file_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+
+        return str(file_path)
+    except Exception as e:
+        logger.error(f"Error saving uploaded file: {e}")
+        st.error("Failed to save the uploaded file.")
+        raise
+
+
+def main():
+    # Sidebar navigation
+    with st.sidebar:
+        st.image("https://img.icons8.com/resume", width=100,)
+        st.title("AI Recruiter Agency")
+        selected = option_menu(
+            menu_title="Navigation",
+            options=["Upload Resume", "View Logs", "About"],
+            icons=["cloud-upload", "file-text", "info-circle"],
+            menu_icon="cast",
+            default_index=0,
+        )
+
+
+        if selected == "Upload Resume":
+            st.header("Resume Analysis")
+            st.write("Upload a resume to get AI-powered insights and job matches.")
+
+            uploaded_file = st.file_uploader("Choose a PDF resume file", type="pdf",help="Upload your resume in PDF format.")
+
+
+            if uploaded_file:
+                try:
+                    with st.spinner("Saving uploaded file..."):
+                        file_path = save_uploaded_file(uploaded_file)
+                    st.success("File uploaded successfully!")
+                
+
+                    # Create placeholder for progres bar
+                    progress_bar = st.progress(0)
+                    status_text = st.empty()
+
+
+                    
+                except Exception as e:
+                    logger.error(f"File upload error: {e}")
+                    st.error("There was an error uploading your file.")
+                    return
+
+
+    
+
+
+
+if __name__ == "__main__":
+    main()

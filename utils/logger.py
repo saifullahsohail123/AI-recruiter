@@ -9,9 +9,9 @@ def setup_logger():
         os.makedirs(logs_dir)
 
     log_file = os.path.join(
-        logs_dir, f"recruitment_{datetime.now().strftimef('%Y%m%d_%H%M%S')}.log"
-
-    loggin.basicConfig(
+        logs_dir, f"recruitment_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
+    
+    logging.basicConfig(
             level=logging.INFO,
             format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
             handlers=[
