@@ -85,6 +85,20 @@ def save_uploaded_file(uploaded_file) -> str:
         raise
 
 
+async def process_resume(file_path: str) -> dict:
+    """Process the resume through the AI recruitment pipeline."""
+    try:
+        orchestrator = OrchestratorAgent()
+        resume_data = {
+            "file_path": file_path,
+            "submission_timestamp": datetime.now().isoformat(),
+        }
+        return await orchestrator.process_application(resume_data)
+    
+    except Exception as e:
+        logger.error(f"Error processing resume: {str(e)}")
+        raise
+
 def main():
     # Sidebar navigation
     with st.sidebar:
@@ -116,6 +130,14 @@ def main():
                     # Create placeholder for progres bar
                     progress_bar = st.progress(0)
                     status_text = st.empty()
+
+                    # Process resume
+                    try:
+                        status_text.text("Analyzing resume...")
+                        progress_bar.progress(25)
+
+                        # Run analysis asynchronously
+                        result = asyncio.run(process_resume(file_path))
 
 
                     
