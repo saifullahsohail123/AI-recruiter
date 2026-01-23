@@ -2,7 +2,7 @@ from typing import Dict, Any
 from .base_agent import BaseAgent
 from .extractor_agent import ExtractorAgent
 from .analyzer_agent import AnalyzerAgent
-# from .matcher_agent import MatcherAgent
+from .matcher_agent import MatcherAgent
 # from .screener_agent import ScreenerAgent
 # from .recommender_agent import RecommenderAgent
 
@@ -23,9 +23,9 @@ class OrchestratorAgent(BaseAgent):
         """Initialize all specialized agents"""
         self.extractor_agent = ExtractorAgent()
         self.analyzer_agent = AnalyzerAgent()
-        self.matcher_agent = MatcherAgent()
-        self.screener_agent = ScreenerAgent()
-        self.recommender_agent = RecommenderAgent()
+        # self.matcher_agent = MatcherAgent()
+        # self.screener_agent = ScreenerAgent()
+        # self.recommender_agent = RecommenderAgent()
 
     async def run(self, messages: list) -> Dict[str, Any]:
         """Process a single message through the agent"""

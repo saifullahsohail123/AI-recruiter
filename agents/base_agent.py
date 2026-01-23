@@ -21,7 +21,7 @@ class BaseAgent:
         """ Query Ollama with the following prompt """
         try:
             response = self.ollama_client.chat.completions.create(
-                model="llama2",  # Example model name
+                model="llama3.2",  # Example model name
                 messages=[
                     {"role": "system", "content": self.instructions},
                     {"role": "user", "content": prompt}

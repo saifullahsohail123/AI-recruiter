@@ -140,6 +140,36 @@ def main():
                         result = asyncio.run(process_resume(file_path))
 
 
+                        if result["status"] == "success":
+                            progress_bar.progress(100)
+                            status_text.text("Analysis complete!")
+
+
+                            # Display results in tabs
+                            tab1, tab2, tab3, tab4 = st.tabs(
+                                [
+                                    "📊 Analysis",
+                                    "💼 Job Matches",
+                                    "🎯 Screening",
+                                    "💡 Recommendation",
+                                ]
+                            )
+
+
+                            with tab1:
+                                st.subheader("Skills Analysis")
+                                st.write(result["anlysis_ results"]["skills_analysis"])
+                                st.metric("Confidence Score",
+                                          f"{result['anlysis_ results']['confidence_score']: .0}%,")
+
+
+                    except Exception as e:
+
+                        logger.error(f"Resume processing error: {e}")
+                        st.error("There was an error processing your resume.")
+                        return
+
+
                     
                 except Exception as e:
                     logger.error(f"File upload error: {e}")
