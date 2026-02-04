@@ -15,7 +15,7 @@ class JobDatabase:
 
     def _init_db(self):
         # Initialize the database with schema
-        if not self.schema_path.exsist():
+        if not self.schema_path.exists():
             raise FileNotFoundError(f"Schema file not found at {self.schema_path}")
         
         with open(self.schema_path, "r") as f:

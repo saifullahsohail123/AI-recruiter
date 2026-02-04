@@ -3,8 +3,8 @@ from .base_agent import BaseAgent
 from .extractor_agent import ExtractorAgent
 from .analyzer_agent import AnalyzerAgent
 from .matcher_agent import MatcherAgent
-# from .screener_agent import ScreenerAgent
-# from .recommender_agent import RecommenderAgent
+from .screener_agent import ScreenerAgent
+from .recommender_agent import RecommenderAgent
 
 
 
@@ -23,9 +23,9 @@ class OrchestratorAgent(BaseAgent):
         """Initialize all specialized agents"""
         self.extractor_agent = ExtractorAgent()
         self.analyzer_agent = AnalyzerAgent()
-        # self.matcher_agent = MatcherAgent()
-        # self.screener_agent = ScreenerAgent()
-        # self.recommender_agent = RecommenderAgent()
+        self.matcher_agent = MatcherAgent()
+        self.screener_agent = ScreenerAgent()
+        self.recommender_agent = RecommenderAgent()
 
     async def run(self, messages: list) -> Dict[str, Any]:
         """Process a single message through the agent"""
@@ -72,18 +72,28 @@ class OrchestratorAgent(BaseAgent):
                 "matched_data": job_matches,
                 "current_stage": "screening"
             })
-            # Screening Stage
-            screening_results = await self.screener_agent.run(
-                [{"role": "user","content": str(job_matches)}]
-            )
-            workflow_context.update({
-                "screened_data": screening_results,
-                "current_stage": "recommendation"
-            })
-            # Recommendation Stage
-            final_recommendation = await self.recommender_agent.run(
-                [{"role": "user","content": str(screening_results)}]
-            )
+            # Screening Stage (optional)
+            if hasattr(self, "screener_agent") and getattr(self, "screener_agent") is not None:
+                screening_results = await self.screener_agent.run(
+                    [{"role": "user","content": str(job_matches)}]
+                )
+                workflow_context.update({
+                    "screened_data": screening_results,
+                    "current_stage": "recommendation"
+                })
+            else:
+                screening_results = job_matches
+                workflow_context.update({
+                    "screened_data": screening_results,
+                    "current_stage": "recommendation"
+                })
+            # Recommendation Stage (optional)
+            if hasattr(self, "recommender_agent") and getattr(self, "recommender_agent") is not None:
+                final_recommendation = await self.recommender_agent.run(
+                    [{"role": "user","content": str(screening_results)}]
+                )
+            else:
+                final_recommendation = screening_results
             workflow_context.update({
                 "recommended_data": final_recommendation,
                 "current_stage": "completed",

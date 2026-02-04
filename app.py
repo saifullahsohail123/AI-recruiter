@@ -158,9 +158,9 @@ def main():
 
                             with tab1:
                                 st.subheader("Skills Analysis")
-                                st.write(result["anlysis_ results"]["skills_analysis"])
+                                st.write(result["analyzed_data"]["skills_analysis"])
                                 st.metric("Confidence Score",
-                                          f"{result['anlysis_ results']['confidence_score']: .0}%,")
+                                          f"{result['analyzed_data']['confidence_score']:.0%}")
 
 
                     except Exception as e:
