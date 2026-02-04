@@ -92,26 +92,29 @@ class JobDatabase:
 
 
             try:
-                with sqlite3.connect(self.db_path) as conn:
+                with sqlite3.connect(self.db.db_path) as conn:
+                    conn.row_factory = sqlite3.Row
                     cursor = conn.cursor()
                     cursor.execute(query, params)
                     rows = cursor.fetchall()
-                    jobs = []
-                    for row in rows:
-                        job = {
-                            "id": row[0],
-                            "title": row[1],
-                            "company": row[2],
-                            "location": row[3],
-                            "type": row[4],
-                            "experience_level": row[5],
-                            "salary_range": json.loads(row[6]),
-                            "description": row[7],
-                            "requirements": json.loads(row[8]),
-                            "benefits": json.loads(row[9])
+
+                    return [
+                        {
+                            "id": row["id"],
+                            "title": row["title"],
+                            "company": row["company"],
+                            "location": row["location"],
+                            "type": row["type"],
+                            "experience_level": row["experience_level"],
+                            "salary_range": row["salary_range"],
+                            "description": row["description"],
+                            "requirements": json.loads(row["requirements"]),
+                            "benefits": (
+                                json.loads(row["benefits"]) if row["benefits"] else []
+                            ),
                         }
-                        jobs.append(job)
-                    return jobs
+                        for row in rows
+                    ]
             except Exception as e:
                 print(f"Error searching jobs: {e}")
                 return []
