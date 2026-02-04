@@ -161,6 +161,63 @@ def main():
                                 st.write(result["analyzed_data"]["skills_analysis"])
                                 st.metric("Confidence Score",
                                           f"{result['analyzed_data']['confidence_score']:.0%}")
+                                
+                        with tab2:
+                            st.subheader("Matched Positions")
+                            if not result["job_matches"]["matched_jobs"]:
+                                st.warning("No suitable positions found.")
+
+                            seen_titles = (
+                                set()
+                            )  # Track seen job titles to avoid duplicates
+
+                            for job in result["job_matches"]["matched_jobs"]:
+                                if job["title"] in seen_titles:
+                                    continue
+                                seen_titles.add(job["title"])
+
+                                with st.container():
+                                    col1, col2, col3 = st.columns([2, 1, 1])
+                                    with col1:
+                                        st.write(f"**{job['title']}**")
+                                    with col2:
+                                        st.write(
+                                            f"Match: {job.get('match_score', 'N/A')}"
+                                        )
+                                    with col3:
+                                        st.write(f"📍 {job.get('location', 'N/A')}")
+                                st.divider()
+
+                            
+                        with tab3:
+                            st.subheader("Screening Results")
+                            st.metric(
+                                "Screening Score",
+                                f"{result['screening_results']['screening_score']}%",
+                            )
+                            st.write(result["screening_results"]["screening_report"])
+
+                        with tab4:
+                            st.subheader("Final Recommendation")
+                            st.info(
+                                result["final_recommendation"]["final_recommendation"],
+                                icon="💡",
+                            )
+
+                        # Save results
+                        output_dir = Path("results")
+                        output_dir.mkdir(exist_ok=True)
+                        output_file = (
+                            output_dir
+                            / f"analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+                        )
+
+                        with open(output_file, "w") as f:
+                            f.write(str(result))
+
+                        st.success(f"Results saved to: {output_file}")
+
+                            
 
 
                     except Exception as e:

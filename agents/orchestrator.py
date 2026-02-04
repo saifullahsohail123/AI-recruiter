@@ -68,34 +68,51 @@ class OrchestratorAgent(BaseAgent):
             job_matches = await self.matcher_agent.run(
                 [{"role": "user","content": str(analysis_results)}]
             )
+            # Keep both legacy and current keys
             workflow_context.update({
                 "matched_data": job_matches,
+                "job_matches": job_matches,
                 "current_stage": "screening"
             })
+
             # Screening Stage (optional)
             if hasattr(self, "screener_agent") and getattr(self, "screener_agent") is not None:
-                screening_results = await self.screener_agent.run(
-                    [{"role": "user","content": str(job_matches)}]
+                # pass full workflow context so screener has access to all data
+                screening_raw = await self.screener_agent.run(
+                    [{"role": "user","content": str(workflow_context)}]
                 )
+                # Normalize screening output to expected keys used by UI
+                screening_results = {
+                    "screening_report": screening_raw.get("screening_results"),
+                    "screening_score": screening_raw.get("screening_score"),
+                    "screening_status": screening_raw.get("screening_status"),
+                }
                 workflow_context.update({
-                    "screened_data": screening_results,
+                    "screened_data": screening_raw,
+                    "screening_results": screening_results,
                     "current_stage": "recommendation"
                 })
             else:
                 screening_results = job_matches
                 workflow_context.update({
                     "screened_data": screening_results,
+                    "screening_results": screening_results,
                     "current_stage": "recommendation"
                 })
+
             # Recommendation Stage (optional)
             if hasattr(self, "recommender_agent") and getattr(self, "recommender_agent") is not None:
+                # pass full workflow context so recommender can access job_matches and analysis
                 final_recommendation = await self.recommender_agent.run(
-                    [{"role": "user","content": str(screening_results)}]
+                    [{"role": "user","content": str(workflow_context)}]
                 )
             else:
                 final_recommendation = screening_results
+
+            # Store both legacy and current keys
             workflow_context.update({
                 "recommended_data": final_recommendation,
+                "final_recommendation": final_recommendation,
                 "current_stage": "completed",
                 "status": "success"
             })
