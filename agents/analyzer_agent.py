@@ -19,34 +19,48 @@ class AnalyzerAgent(BaseAgent):
         print("AnalyzerAgent: Starting analysis process...")
         
         extracted_data = eval(messages[-1]["content"])
-
+        structured = extracted_data.get("structured_data", {})
+        
+        print(f"AnalyzerAgent: Received structured data keys: {list(structured.keys())}")
 
         # Get structured analysis from Ollama
-        analysis_prompt = f"""
-        Analyze this resume data and return a JSON object with the following structure:
+        analysis_prompt = f"""Analyze this structured resume data and return a JSON object with ONLY these fields:
 
-        {{
-        "technical_skills": [...],
-        "years_of_experience": 0,
-        "education":{{"degree": "...", "institution": "...", "graduation_year": 0
-        }}
-        "experience_level": "...",
-        "key_achievements": [...],
-        "domain_expertise": ["domain1", "domain2", "..."],
-        }}
+{{
+  "technical_skills": ["skill1", "skill2", ...all skills found],
+  "years_of_experience": NUMBER,
+  "education": {{
+    "degree": "Bachelor/Master/PhD/Diploma or degree name",
+    "institution": "University or school name",
+    "graduation_year": YYYY
+  }},
+  "experience_level": "Entry-level/Mid-level/Senior-level",
+  "key_achievements": ["achievement1", "achievement2", ...all achievements found],
+  "domain_expertise": ["domain1", "domain2", ...all domains found]
+}}
 
-        Resume Data:
-        {extracted_data["structured_data"]}
+Resume Data:
+{json.dumps(structured, indent=2)}
 
-        Return only the JSON object. no other text.
-        """
+IMPORTANT:
+- Extract ALL technical skills mentioned (programming languages, frameworks, tools, databases, etc.)
+- Extract ALL domains/industries mentioned (AI, web development, data science, etc.)
+- Extract years of experience as a number
+- Extract first education entry if multiple exist
+- Return ONLY valid JSON, no markdown, no extra text
+"""
 
         analysis_results = self._query_ollama(analysis_prompt)
         
+        print(f"AnalyzerAgent: Raw Ollama response (first 200 chars): {analysis_results[:200]}")
+        
         parsed_results = self._parse_json_safely(analysis_results)
+        
+        print(f"AnalyzerAgent: Parsed result keys: {list(parsed_results.keys()) if isinstance(parsed_results, dict) else 'not a dict'}")
 
         # Ensure we have valid data even if parsing fails
         if "error" in parsed_results:
+            print(f"AnalyzerAgent: Parsing error detected, using defaults")
             parsed_results = {
                 "technical_skills": [],
                 "years_of_experience": 0,

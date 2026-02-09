@@ -28,12 +28,58 @@ class ExtractorAgent(BaseAgent):
             else:
                 raw_text = resume_data.get("text", "")
             
-            # Get structured information from Ollama
-            extracted_info = self._query_ollama(raw_text)
+            # Get structured information from Ollama with explicit prompt
+            extraction_prompt = f"""Extract and structure all information from this resume. Return ONLY a valid JSON object with these fields:
+
+{{
+  "contact_info": {{
+    "name": "...",
+    "email": "...",
+    "phone": "..."
+  }},
+  "summary": "...",
+  "technical_skills": ["skill1", "skill2", ...],
+  "education": [
+    {{
+      "degree": "...",
+      "field_of_study": "...",
+      "institution": "...",
+      "graduation_year": YYYY
+    }}
+  ],
+  "work_experience": [
+    {{
+      "title": "...",
+      "company": "...",
+      "duration": "...",
+      "responsibilities": ["...", "..."]
+    }}
+  ],
+  "certifications": ["cert1", "cert2", ...],
+  "domain_expertise": ["domain1", "domain2", ...],
+  "years_of_experience": NUMBER
+}}
+
+Resume Text:
+{raw_text}
+
+Return ONLY the JSON object, no markdown formatting, no extra text.
+"""
+            extracted_info = self._query_ollama(extraction_prompt)
+            
+            # Try to parse and validate
+            import json
+            try:
+                parsed = json.loads(extracted_info)
+                print(f"ExtractorAgent: Successfully extracted and parsed resume data")
+                structured_data = parsed
+            except json.JSONDecodeError:
+                print(f"ExtractorAgent: JSON parsing failed, attempting fallback parse")
+                structured_data = self._parse_json_safely(extracted_info)
 
             return {
                  "raw_text": raw_text,
-                 "structured_data": extracted_info,
+                 "structured_data": structured_data,
                  "extraction_status": "completed"
             }
 
