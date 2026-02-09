@@ -100,6 +100,10 @@ async def process_resume(file_path: str) -> dict:
         raise
 
 def main():
+    # Initialize session state for result persistence
+    if "result" not in st.session_state:
+        st.session_state.result = None
+    
     # Sidebar navigation only
     with st.sidebar:
         st.image("https://img.icons8.com/resume", width=100,)
@@ -117,114 +121,120 @@ def main():
         st.header("📄 Resume Analysis & Job Matching")
         st.write("Upload a PDF resume to get AI-powered insights and personalized job matches.")
         
-        col_upload, col_results = st.columns([1, 2])
+        # Upload section (always visible at top)
+        st.subheader("📤 Upload Resume")
+        uploaded_file = st.file_uploader("Choose a PDF resume file", type="pdf", help="Upload your resume in PDF format.")
         
-        with col_upload:
-            st.subheader("Upload Resume")
-            uploaded_file = st.file_uploader("Choose a PDF resume file", type="pdf", help="Upload your resume in PDF format.")
-            
-            if uploaded_file:
+        if uploaded_file:
+            try:
+                with st.spinner("Saving uploaded file..."):
+                    file_path = save_uploaded_file(uploaded_file)
+                st.success("File uploaded successfully!")
+                
+                # Create placeholder for progress bar
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                
+                # Process resume
                 try:
-                    with st.spinner("Saving uploaded file..."):
-                        file_path = save_uploaded_file(uploaded_file)
-                    st.success("File uploaded successfully!")
+                    status_text.text("Analyzing resume...")
+                    progress_bar.progress(25)
                     
-                    # Create placeholder for progress bar
-                    progress_bar = st.progress(0)
-                    status_text = st.empty()
+                    # Run analysis asynchronously
+                    result = asyncio.run(process_resume(file_path))
                     
-                    # Process resume
-                    try:
-                        status_text.text("Analyzing resume...")
-                        progress_bar.progress(25)
-                        
-                        # Run analysis asynchronously
-                        result = asyncio.run(process_resume(file_path))
-                        
-                        progress_bar.progress(100)
-                        status_text.text("Analysis complete!")
-                        
-                    except Exception as e:
-                        logger.error(f"Resume processing error: {e}")
-                        st.error("There was an error processing your resume.")
-                        return
-                        
+                    # Store result in session state for persistence
+                    st.session_state.result = result
+                    
+                    progress_bar.progress(100)
+                    status_text.text("Analysis complete!")
+                    
                 except Exception as e:
-                    logger.error(f"File upload error: {e}")
-                    st.error("There was an error uploading your file.")
+                    logger.error(f"Resume processing error: {e}")
+                    st.error("There was an error processing your resume.")
                     return
-            else:
-                result = None
+                    
+            except Exception as e:
+                logger.error(f"File upload error: {e}")
+                st.error("There was an error uploading your file.")
+                return
         
-        # Display results on the right side
-        with col_results:
-            if uploaded_file and result and result["status"] == "success":
-                # Display results in tabs
-                tab1, tab2, tab3, tab4 = st.tabs(
-                    [
-                        "📊 Analysis",
-                        "💼 Job Matches",
-                        "🎯 Screening",
-                        "💡 Recommendation",
-                    ]
+        # Display results below upload section (if result exists)
+        if st.session_state.result and st.session_state.result["status"] == "success":
+            st.divider()
+            st.subheader("✅ Analysis Results")
+            
+            # Display results in tabs
+            tab1, tab2, tab3, tab4 = st.tabs(
+                [
+                    "📊 Analysis",
+                    "💼 Job Matches",
+                    "🎯 Screening",
+                    "💡 Recommendation",
+                ]
+            )
+            
+            result = st.session_state.result
+            
+            with tab1:
+                st.subheader("Skills Analysis")
+                st.write(result["analyzed_data"]["skills_analysis"])
+                st.metric("Confidence Score",
+                          f"{result['analyzed_data']['confidence_score']:.0%}")
+            
+            with tab2:
+                st.subheader("Matched Positions")
+                if not result["job_matches"]["matched_jobs"]:
+                    st.warning("No suitable positions found.")
+                else:
+                    seen_titles = set()
+                    for job in result["job_matches"]["matched_jobs"]:
+                        if job["title"] in seen_titles:
+                            continue
+                        seen_titles.add(job["title"])
+                        
+                        with st.container():
+                            col1, col2, col3 = st.columns([2, 1, 1])
+                            with col1:
+                                st.write(f"**{job['title']}**")
+                            with col2:
+                                st.write(f"Match: {job.get('match_score', 'N/A')}")
+                            with col3:
+                                st.write(f"📍 {job.get('location', 'N/A')}")
+                        st.divider()
+            
+            with tab3:
+                st.subheader("Screening Results")
+                st.metric(
+                    "Screening Score",
+                    f"{result['screening_results']['screening_score']}%",
                 )
-                
-                with tab1:
-                    st.subheader("Skills Analysis")
-                    st.write(result["analyzed_data"]["skills_analysis"])
-                    st.metric("Confidence Score",
-                              f"{result['analyzed_data']['confidence_score']:.0%}")
-                
-                with tab2:
-                    st.subheader("Matched Positions")
-                    if not result["job_matches"]["matched_jobs"]:
-                        st.warning("No suitable positions found.")
-                    else:
-                        seen_titles = set()
-                        for job in result["job_matches"]["matched_jobs"]:
-                            if job["title"] in seen_titles:
-                                continue
-                            seen_titles.add(job["title"])
-                            
-                            with st.container():
-                                col1, col2, col3 = st.columns([2, 1, 1])
-                                with col1:
-                                    st.write(f"**{job['title']}**")
-                                with col2:
-                                    st.write(f"Match: {job.get('match_score', 'N/A')}")
-                                with col3:
-                                    st.write(f"📍 {job.get('location', 'N/A')}")
-                            st.divider()
-                
-                with tab3:
-                    st.subheader("Screening Results")
-                    st.metric(
-                        "Screening Score",
-                        f"{result['screening_results']['screening_score']}%",
-                    )
-                    st.write(result["screening_results"]["screening_report"])
-                
-                with tab4:
-                    st.subheader("Final Recommendation")
-                    st.info(
-                        result["final_recommendation"]["final_recommendation"],
-                        icon="💡",
-                    )
-                
-                # Save results
-                output_dir = Path("results")
-                output_dir.mkdir(exist_ok=True)
-                output_file = (
-                    output_dir
-                    / f"analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+                st.write(result["screening_results"]["screening_report"])
+            
+            with tab4:
+                st.subheader("Final Recommendation")
+                st.info(
+                    result["final_recommendation"]["final_recommendation"],
+                    icon="💡",
                 )
-                
-                with open(output_file, "w") as f:
-                    f.write(str(result))
-                
-                st.success(f"Results saved to: {output_file}")
-            else:
-                st.info("👈 Upload a resume on the left to get started!")
+            
+            # Save results
+            output_dir = Path("results")
+            output_dir.mkdir(exist_ok=True)
+            output_file = (
+                output_dir
+                / f"analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+            )
+            
+            with open(output_file, "w") as f:
+                f.write(str(result))
+            
+            st.success(f"Results saved to: {output_file}")
+            
+            # Option to clear results
+            if st.button("Clear Results & Start Over"):
+                st.session_state.result = None
+                st.rerun()
     
     elif selected == "View Logs":
         st.header("📋 View Logs")
